@@ -25,19 +25,24 @@ glasses_model.to(device)
 #process models results.
 def process_result(result,frame,model):
     x1, y1, x2, y2, score, class_id = result
-
+    
+    #helmet model detections
     if model.model_name == helmet_model_name:
-        if score > 0.65 and model.names[int(class_id)] == 'helmet':
+        
+        if score > 0.60 and model.names[int(class_id)] == 'helmet':
             cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
             label = f'Helmet: {score:.2f}'
             cv2.putText(frame, label, (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
             winsound.Beep(1000, 500)  # Beep alarm for helmet detection
+    #glasses model detections
     elif model.model_name == glasses_model_name:
-        if score > 0.50:
+
+        if score > 0.50 and (model.names[int(class_id)] == 'glasses' or model.names[int(class_id)] == 'sunglasses'):
             cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
             label = f'{model.names[int(class_id)]}: {score:.2f}'
             cv2.putText(frame, label, (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-            winsound.Beep(1000, 500)  # Beep alarm for glasses detection        
+            winsound.Beep(1000, 500)  # Beep alarm for glasses detection
+            
     return None
 
 def detect_helmets(frame):
