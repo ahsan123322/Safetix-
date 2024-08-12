@@ -12,7 +12,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Using device: {device}")
 
 # Load helmet detection model
-helmet_model = YOLO("glasses.pt")
+helmet_model = YOLO("glasses_best.pt")
 helmet_model.to(device)
 
 def detect_helmets(frame):
