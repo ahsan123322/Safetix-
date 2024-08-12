@@ -20,13 +20,10 @@ def detect_helmets(frame):
     for result in results_helmet.boxes.data.tolist():
         x1, y1, x2, y2, score, class_id = result
         if score > 0.75:
-            # Get the class name from the model's names attribute
             class_name = helmet_model.names[int(class_id)]
             
-            # Draw the bounding box
             cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
             
-            # Use the class name in the label
             label = f'{class_name}: {score:.2f}'
             cv2.putText(frame, label, (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
             
