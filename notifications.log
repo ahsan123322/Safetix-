@@ -1,0 +1,16 @@
+2024-08-13 12:46:26,521:INFO:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2024-08-13 12:46:26,521:INFO:[33mPress CTRL+C to quit[0m
+2024-08-13 12:46:26,525:INFO: * Restarting with stat
+2024-08-13 12:46:27,249:WARNING: * Debugger is active!
+2024-08-13 12:46:27,263:INFO: * Debugger PIN: 337-258-780
+2024-08-13 12:50:03,530:INFO:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2024-08-13 12:50:03,530:INFO:[33mPress CTRL+C to quit[0m
+2024-08-13 12:50:03,535:INFO: * Restarting with stat
+2024-08-13 12:50:04,355:WARNING: * Debugger is active!
+2024-08-13 12:50:04,373:INFO: * Debugger PIN: 337-258-780
+2024-08-13 12:50:17,703:INFO: * Detected change in 'd:\\StudyMat\\Projects\\SAM\\Safetix-\\scripts\\video_detection.py', reloading
+2024-08-13 12:50:17,823:INFO: * Restarting with stat
+2024-08-13 12:50:19,003:WARNING: * Debugger is active!
+2024-08-13 12:50:19,016:INFO: * Debugger PIN: 337-258-780

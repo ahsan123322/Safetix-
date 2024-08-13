@@ -7,42 +7,67 @@ from tkinter import ttk, messagebox, filedialog
 from PIL import Image, ImageTk
 import threading
 from ttkthemes import ThemedTk
+import os
+import sys
+import requests
 
 # Set up device
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Using device: {device}")
 
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
 # Load helmet detection model
-helmet_model_name = "helmet.pt"
+helmet_model_name =  ('D:/StudyMat/Projects/SAM/Safetix-/models/helmet.pt')
 helmet_model = YOLO(helmet_model_name)
 helmet_model.to(device)
 
 #Loading Glasses Model
-glasses_model_name = "glasses_best.pt"
+glasses_model_name = ('D:/StudyMat/Projects/SAM/Safetix-/models/glasses_best.pt')
 glasses_model = YOLO(glasses_model_name)
 glasses_model.to(device)
 
+
+def send_notification(detection_type, confidence):
+    server_url = "http://localhost:5000/api/notifications"  # Update this if your server is on a different port
+    payload = {
+        "detection_type": detection_type,
+        "confidence": confidence
+    }
+    try:
+        response = requests.post(server_url, json=payload)
+        if response.status_code == 200:
+            print(f"Notification sent successfully: {detection_type}")
+        else:
+            print(f"Failed to send notification: {response.status_code}")
+    except requests.RequestException as e:
+        print(f"Error sending notification: {e}")
+
 #process models results.
-def process_result(result,frame,model):
+def process_result(result, frame, model):
     x1, y1, x2, y2, score, class_id = result
     
-    #helmet model detections
     if model.model_name == helmet_model_name:
-        
         if score > 0.60 and model.names[int(class_id)] == 'helmet':
             cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
             label = f'Helmet: {score:.2f}'
             cv2.putText(frame, label, (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
             winsound.Beep(1000, 500)  # Beep alarm for helmet detection
-    #glasses model detections
-    elif model.model_name == glasses_model_name:
+            send_notification("Helmet", float(score))  # Send notification to server
 
+    elif model.model_name == glasses_model_name:
         if score > 0.50 and (model.names[int(class_id)] == 'glasses' or model.names[int(class_id)] == 'sunglasses'):
             cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
             label = f'{model.names[int(class_id)]}: {score:.2f}'
             cv2.putText(frame, label, (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
             winsound.Beep(1000, 500)  # Beep alarm for glasses detection
-            
+            send_notification(model.names[int(class_id)], float(score))  # Send notification to server
+    
     return None
 
 def detect_helmets(frame):
@@ -132,7 +157,7 @@ def upload_video():
 
 def setup_gui():
     root = ThemedTk(theme="arc")
-    root.title("HELMET AND GLASSES DETECTION SYSTEM **PEGASUS HELMETGUARD**")
+    root.title("HELMET AND GLASSES DETECTION SYSTEM")
     root.geometry("800x700")
 
     def on_closing():
