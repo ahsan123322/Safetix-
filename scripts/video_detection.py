@@ -34,7 +34,7 @@ glasses_model.to(device)
 
 
 def send_notification(detection_type, confidence):
-    server_url = "http://localhost:5000/api/notifications"  # Update this if your server is on a different port
+    server_url = "http://localhost:5000/api/notifications"  
     payload = {
         "detection_type": detection_type,
         "confidence": confidence
@@ -53,12 +53,20 @@ def process_result(result, frame, model):
     x1, y1, x2, y2, score, class_id = result
     
     if model.model_name == helmet_model_name:
-        if score > 0.60 and model.names[int(class_id)] == 'helmet':
-            cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
-            label = f'Helmet: {score:.2f}'
-            cv2.putText(frame, label, (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-            winsound.Beep(1000, 500)  # Beep alarm for helmet detection
-            send_notification("Helmet", float(score))  # Send notification to server
+        if score > 0.50 and (model.names[int(class_id)] == 'helmet' or model.names[int(class_id)] == 'head'):
+            if model.names[int(class_id)] == 'head':
+                label_name = 'without_helmet' 
+            else:
+                label_name = model.names[int(class_id)] 
+        
+        cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
+        
+        label = f'{label_name}: {score:.2f}'
+        cv2.putText(frame, label, (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        
+        winsound.Beep(1000, 500)
+        if label_name == 'without_helmet':
+            send_notification(label_name, float(score))  # Use the manually set label
 
     elif model.model_name == glasses_model_name:
         if score > 0.50 and (model.names[int(class_id)] == 'glasses' or model.names[int(class_id)] == 'sunglasses'):
