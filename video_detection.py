@@ -1,6 +1,7 @@
 import cv2
 import torch
 from ultralytics import YOLO
+from ultralytics import SAM
 import winsound
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
@@ -13,21 +14,21 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Using device: {device}")
 
 # Load helmet detection model
-helmet_model_name = "helmet.pt"
-helmet_model = YOLO(helmet_model_name)
+helmet_model_path = r"./models/helmet.pt"
+helmet_model = YOLO(helmet_model_path)
 helmet_model.to(device)
 
 #Loading Glasses Model
-glasses_model_name = "glasses_best.pt"
-glasses_model = YOLO(glasses_model_name)
+glasses_model_path = r"./models/glasses_best.pt"
+glasses_model = YOLO(glasses_model_path)
 glasses_model.to(device)
 
 #process models results.
 def process_result(result,frame,model):
     x1, y1, x2, y2, score, class_id = result
-    
+    print(f'Model Name:{model.model_name}')
     #helmet model detections
-    if model.model_name == helmet_model_name:
+    if model.model_name == helmet_model_path:
         
         if score > 0.60 and model.names[int(class_id)] == 'helmet':
             cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
@@ -35,7 +36,7 @@ def process_result(result,frame,model):
             cv2.putText(frame, label, (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
             winsound.Beep(1000, 500)  # Beep alarm for helmet detection
     #glasses model detections
-    elif model.model_name == glasses_model_name:
+    elif model.model_name == glasses_model_path:
 
         if score > 0.50 and (model.names[int(class_id)] == 'glasses' or model.names[int(class_id)] == 'sunglasses'):
             cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)

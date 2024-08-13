@@ -12,8 +12,9 @@ from ttkthemes import ThemedTk
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Using device: {device}")
 
-# Load helmet detection model 
-helmet_model = YOLO("helmet.pt")
+# Load helmet detection model
+helmet_model_path = r"./models/helmet.pt"
+helmet_model = YOLO(helmet_model_path)
 helmet_model.to(device)
 
 def process_result(result,frame):
