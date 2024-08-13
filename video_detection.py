@@ -16,11 +16,17 @@ print(f"Using device: {device}")
 # Load helmet detection model
 helmet_model_path = r"./models/helmet.pt"
 helmet_model = YOLO(helmet_model_path)
+
+#optionally fuse model for faster inference, but increased load time
+#helmet_model.fuse()
 helmet_model.to(device)
 
 #Loading Glasses Model
 glasses_model_path = r"./models/glasses_best.pt"
 glasses_model = YOLO(glasses_model_path)
+
+#optionally fuse model for faster inference, but increased load time
+#glasses_model.fuse()
 glasses_model.to(device)
 
 #process models results.
@@ -62,7 +68,6 @@ def detect_helmets(frame):
     return frame
 
 def detect_glasses(frame):
-
     results_glasses = glasses_model(frame)[0]
     #threads = []
     
