@@ -3,7 +3,7 @@ import torch
 import numpy as np
 from ultralytics import SAM
 
-FRAME_INTERVAL = 10
+FRAME_INTERVAL = 30
 
 def preprocess_frame(frame):
     # Resize frame to 640x480
@@ -21,7 +21,7 @@ def preprocess_frame(frame):
 
 # Load the SAM model and move it to the GPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = SAM("./models/sam2_t.pt")
+model = SAM(model='./models/sam2_t.pt')
 model.model.image_encoder.img_size = (480, 640)  # Set the new input size
 model = model.to(device)
 

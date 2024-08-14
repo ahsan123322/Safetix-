@@ -1,9 +1,10 @@
 # Core Dependencies
-opencv-python==4.5.5.64
+opencv-contrib-python==4.10.0.84
+opencv-python-headless==4.10.0.84
 numpy==1.21.5
 tensorflow==2.8.0
 scipy==1.7.3
-ultralytics==8.0.20
+ultralytics==8.2.77
 ttkthemes==3.2.2
 
 # PyTorch dependencies (to be installed separately)
