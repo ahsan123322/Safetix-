@@ -12,7 +12,7 @@ from ttkthemes import ThemedTk
 
 #Set Up FPS Lock And Segmentation after Interval
 FPS=30
-FRAME_INTERVAL=20
+FRAME_INTERVAL=10
 
 # Set up device
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -56,7 +56,7 @@ def process_result(result,frame,model):
             cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
             label = f'Helmet: {score:.2f}'
             cv2.putText(frame, label, (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-            # winsound.Beep(1000, 500)  # Beep alarm for helmet detection
+            winsound.Beep(1000, 500)  # Beep alarm for helmet detection
     #glasses model detections
     elif model.model_name == glasses_model_path:
 
@@ -64,7 +64,7 @@ def process_result(result,frame,model):
             cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
             label = f'{model.names[int(class_id)]}: {score:.2f}'
             cv2.putText(frame, label, (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-            # winsound.Beep(1000, 500)  # Beep alarm for glasses detection
+            winsound.Beep(1000, 500)  # Beep alarm for glasses detection
             
     return None
 
@@ -79,6 +79,7 @@ def segment_result(result,frame,ref_model,frame_count,curr_mask,mask_queue,sam_m
             
             # print(f'SAM Model:{sam_m}')
             #disable optimizers since we are doing only forward pass
+            print(f"Is SAM model on CUDA: {next(sam_m.parameters()).is_cuda}")
             with torch.no_grad():
                 seg_results = sam_m(frame, bboxes=[x1, y1, x2, y2])
 
@@ -98,8 +99,8 @@ def segment_result(result,frame,ref_model,frame_count,curr_mask,mask_queue,sam_m
                     curr_mask = mask_image
                     mask_queue.put(curr_mask)
     
-    if curr_mask is not None:
-        print(f'YO it works.')
+    # if curr_mask is not None:
+    #     print(f'YO it works.')
         # # Create a colored mask overlay
         # colored_mask = cv2.merge([np.zeros_like(curr_mask), curr_mask, np.zeros_like(curr_mask)])
         
@@ -110,49 +111,41 @@ def segment_result(result,frame,ref_model,frame_count,curr_mask,mask_queue,sam_m
 
 def detect_helmets(frame,frame_count,curr_mask,mask_queue,sam_m):
     results_helmet = helmet_model(frame)[0]
-    seg_threads = []
-    
-    print(f"Current Mask in Detect Helmets:{curr_mask}")
-    print(f'Current Frame in Detect Helmets:{frame_count}')
-    #print(f'SAM Model:{sam_m}')
 
     for result in results_helmet.boxes.data.tolist():
         h_thread = threading.Thread(target=process_result, args=(result, frame,helmet_model))
         seg_thread = threading.Thread(target=segment_result,args=(result,frame,helmet_model,frame_count,curr_mask,mask_queue,sam_m))
-        seg_threads.append(seg_thread)
         h_thread.start()
         seg_thread.start()
-        #seg_thread.join()
+        #Causing uneven problems, if join removed or done later.
+        seg_thread.join()
+
+    # # Optionally wait for all threads to complete
+    # for thread in threads:
+    #     thread.join()
+
+    return frame
+
+def detect_glasses(frame,frame_count,curr_mask,mask_queue,sam_m):
+    results_glasses = glasses_model(frame)[0]
+   
+    for result in results_glasses.boxes.data.tolist():
+        g_thread = threading.Thread(target=process_result, args=(result, frame,glasses_model))
+        seg_thread = threading.Thread(target=segment_result,args=(result,frame,glasses_model,frame_count,curr_mask,mask_queue,sam_m))
+        g_thread.start()
+        seg_thread.start()
+        #Causing uneven problems, if join removed or done later.
+        seg_thread.join()       
 
     # # Optionally wait for all threads to complete
     # for thread in threads:
     #     thread.join()
 
     #Wait For Segmentation Thread because IT IS TOO DAMM SLOW.
-    for seg_thread in seg_threads:
-        seg_thread.join()
+    # for seg_thread in seg_threads:
+    #     seg_thread.join()
 
     return frame
-
-# def detect_glasses(frame,frame_count):
-#     results_glasses = glasses_model(frame)[0]
-#     seg_threads = []
-    
-#     for result in results_glasses.boxes.data.tolist():
-#         g_thread = threading.Thread(target=process_result, args=(result, frame,glasses_model))
-#         seg_thread = threading.Thread(target=segment_result,args=(result,frame,sam_model,glasses_model,frame_count))
-#         seg_threads.append(seg_thread)
-#         g_thread.start()
-#         seg_thread.start()
-
-#     # # Optionally wait for all threads to complete
-#     # for thread in threads:
-#     #     thread.join()
-
-#     #Wait For Segmentation Thread because IT IS TOO DAMM SLOW.
-#     for seg_thread in seg_threads:
-#         seg_thread.join()
-#     return frame
 
 # Process whole Frame.
 def process_frame(frame,frame_count,current_mask,mask_queue,sam_m):
@@ -163,14 +156,14 @@ def process_frame(frame,frame_count,current_mask,mask_queue,sam_m):
 
     #Main thread to run both helmets and glasses_model
     helmet_thread = threading.Thread(target=detect_helmets,args=(frame,frame_count,current_mask,mask_queue,sam_m))
-    #glasses_thread = threading.Thread(target=detect_glasses,args=(frame,frame_count))
+    glasses_thread = threading.Thread(target=detect_glasses,args=(frame,frame_count,current_mask,mask_queue,sam_m))
 
     helmet_thread.start()
-    #glasses_thread.start()
+    glasses_thread.start()
 
     #Join Both Threads..
     helmet_thread.join()
-    #glasses_thread.join()
+    glasses_thread.join()
 
     #get mask result
     if not mask_queue.empty():
