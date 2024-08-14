@@ -74,6 +74,7 @@ while True:
                 
                 #Current Mask
                 current_mask = mask_image
+                print(f'Current Mask:{current_mask}')
 
     if current_mask is not None:
         # Create a colored mask overlay
