@@ -15,6 +15,7 @@ import requests
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Using device: {device}")
 
+
 def resource_path(relative_path):
     try:
         base_path = sys._MEIPASS
@@ -28,7 +29,7 @@ helmet_model = YOLO(helmet_model_name)
 helmet_model.to(device)
 
 #Loading Glasses Model
-glasses_model_name = ('D:/StudyMat/Projects/SAM/Safetix-/models/glasses_best.pt')
+glasses_model_name = ('D:\StudyMat\Projects\SAM\Safetix-\models\epoch100.pt')
 glasses_model = YOLO(glasses_model_name)
 glasses_model.to(device)
 
@@ -69,12 +70,18 @@ def process_result(result, frame, model):
                 send_notification(label_name, float(score))  # Use the manually set label
 
     elif model.model_name == glasses_model_name:
-        if score > 0.50 and (model.names[int(class_id)] == 'glasses' or model.names[int(class_id)] == 'sunglasses'):
+        if (model.names[int(class_id)] == '0') or (score > 0.90 and model.names[int(class_id)] == '1'):
+            if model.names[int(class_id)] == '0':
+                label_name = 'without glasses' 
+            else:
+                label_name =  'with glasses'
+
             cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
-            label = f'{model.names[int(class_id)]}: {score:.2f}'
+            label = f'{label_name}: {score:.2f}'
             cv2.putText(frame, label, (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
             winsound.Beep(1000, 500)  # Beep alarm for glasses detection
-            send_notification(model.names[int(class_id)], float(score))  # Send notification to server
+            if label_name == 'without glasses':
+                send_notification(label_name, float(score))  # Send notification to server
     
     return None
 
