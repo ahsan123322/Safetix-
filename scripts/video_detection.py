@@ -59,14 +59,14 @@ def process_result(result, frame, model):
             else:
                 label_name = model.names[int(class_id)] 
         
-        cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
-        
-        label = f'{label_name}: {score:.2f}'
-        cv2.putText(frame, label, (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-        
-        winsound.Beep(1000, 500)
-        if label_name == 'without_helmet':
-            send_notification(label_name, float(score))  # Use the manually set label
+            cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
+            
+            label = f'{label_name}: {score:.2f}'
+            cv2.putText(frame, label, (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            
+            winsound.Beep(1000, 500)
+            if label_name == 'without_helmet':
+                send_notification(label_name, float(score))  # Use the manually set label
 
     elif model.model_name == glasses_model_name:
         if score > 0.50 and (model.names[int(class_id)] == 'glasses' or model.names[int(class_id)] == 'sunglasses'):
