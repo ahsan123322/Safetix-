@@ -39,6 +39,8 @@ sam_model = SAM("./models/sam2_t.pt")
 sam_model.model.image_encoder.img_size = (480, 640)  # Set the new input size
 sam_model = sam_model.to(device)
 
+#sam_model.compile()
+
 def empty_queue(q):
     while not q.empty():
         try:
@@ -69,19 +71,18 @@ def process_result(result,frame,model):
     return None
 
 # segment the detected models result.
-def segment_result(result,frame,ref_model,frame_count,curr_mask,mask_queue,sam_m):
-    x1, y1, x2, y2, score, class_id = result
+def segment_result(model_bboxes,frame,frame_count,curr_mask,mask_queue,sam_m):
+    #x1, y1, x2, y2, score, class_id = result
 
     if frame_count % FRAME_INTERVAL == 1 or curr_mask is None:
-        #conditions for helmet or glasses model
-        if (ref_model.model_name == helmet_model_path and ref_model.names[int(class_id)] == 'helmet' and score > 0.60) or \
-            (ref_model.model_name == glasses_model_path and score > 0.50 and (ref_model.names[int(class_id)] == 'glasses' or ref_model.names[int(class_id)] == 'sunglasses') ):
-            
-            # print(f'SAM Model:{sam_m}')
-            #disable optimizers since we are doing only forward pass
-            print(f"Is SAM model on CUDA: {next(sam_m.parameters()).is_cuda}")
+        # print(f'SAM Model:{sam_m}')
+
+        print(f"Is SAM model on GPU: {next(sam_m.parameters()).is_cuda}")
+        #disable optimizers since we are doing only forward pass
+
+        if len(model_bboxes) != 0:
             with torch.no_grad():
-                seg_results = sam_m(frame, bboxes=[x1, y1, x2, y2])
+                seg_results = sam_m(frame, bboxes=model_bboxes)
 
             # Process Segmentation results
             for seg_result in seg_results:
@@ -99,51 +100,45 @@ def segment_result(result,frame,ref_model,frame_count,curr_mask,mask_queue,sam_m
                     curr_mask = mask_image
                     mask_queue.put(curr_mask)
     
-    # if curr_mask is not None:
-    #     print(f'YO it works.')
-        # # Create a colored mask overlay
-        # colored_mask = cv2.merge([np.zeros_like(curr_mask), curr_mask, np.zeros_like(curr_mask)])
-        
-        # # Overlay the mask on the original frame
-        # frame = cv2.addWeighted(frame, 1, colored_mask, 0.5, 0)
-    
     return None
 
 def detect_helmets(frame,frame_count,curr_mask,mask_queue,sam_m):
     results_helmet = helmet_model(frame)[0]
+    helmet_bboxes = []
 
+    #for each result from helmet model make a bounding box and pick its co-ordinates for segmentation.
     for result in results_helmet.boxes.data.tolist():
         h_thread = threading.Thread(target=process_result, args=(result, frame,helmet_model))
-        seg_thread = threading.Thread(target=segment_result,args=(result,frame,helmet_model,frame_count,curr_mask,mask_queue,sam_m))
         h_thread.start()
-        seg_thread.start()
-        #Causing uneven problems, if join removed or done later.
-        seg_thread.join()
+        x1,y1,x2,y2,score,class_id = result
+        if(helmet_model.names[int(class_id)] == 'helmet' and score > 0.60):
+            helmet_bboxes.append([x1,y1,x2,y2])
 
-    # # Optionally wait for all threads to complete
-    # for thread in threads:
-    #     thread.join()
+    #print(f'helmet Boxes:{helmet_bboxes}')        
+    seg_thread = threading.Thread(target=segment_result,args=(helmet_bboxes,frame,frame_count,curr_mask,mask_queue,sam_m))
+    seg_thread.start()
+
+    #Optionally Join the threads.
+    #seg_thread.join()
 
     return frame
 
 def detect_glasses(frame,frame_count,curr_mask,mask_queue,sam_m):
     results_glasses = glasses_model(frame)[0]
-   
+    glasses_bboxes = []
+
     for result in results_glasses.boxes.data.tolist():
         g_thread = threading.Thread(target=process_result, args=(result, frame,glasses_model))
-        seg_thread = threading.Thread(target=segment_result,args=(result,frame,glasses_model,frame_count,curr_mask,mask_queue,sam_m))
         g_thread.start()
-        seg_thread.start()
-        #Causing uneven problems, if join removed or done later.
-        seg_thread.join()       
+        x1,y1,x2,y2,score,class_id = result
+        if((glasses_model.names[int(class_id)] == 'glasses' or glasses_model.names[int(class_id)] == 'sunglasses') and score>0.50):
+            glasses_bboxes.append([x1,y1,x2,y2])
 
-    # # Optionally wait for all threads to complete
-    # for thread in threads:
-    #     thread.join()
+    # print(f'Glasses Boxes:{glasses_bboxes}')    
+    seg_thread = threading.Thread(target=segment_result,args=(glasses_bboxes,frame,frame_count,curr_mask,mask_queue,sam_m))
+    seg_thread.start()
 
-    #Wait For Segmentation Thread because IT IS TOO DAMM SLOW.
-    # for seg_thread in seg_threads:
-    #     seg_thread.join()
+    # seg_thread.join()
 
     return frame
 
@@ -184,7 +179,7 @@ def smooth_frame(frame, kernel_size=(5, 5), sigma=0):
 def process_video(video_path,image_label,sam_m):
     
     cap = cv2.VideoCapture(video_path)
-    mask_queue = queue.Queue(maxsize=10)
+    mask_queue = queue.Queue(maxsize=50)
     # Use mutable objects to store state
     state = {
         'frame_count': 0,
