@@ -24,17 +24,17 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 # Load helmet detection model
-helmet_model_name =  ('D:/StudyMat/Projects/SAM/Safetix-/models/helmet.pt')
+helmet_model_name =  ('D:/StudyMat/Projects/SAM/Safetix-/models/helmet_best.pt')
 helmet_model = YOLO(helmet_model_name)
 helmet_model.to(device)
 
 #Loading Glasses Model
-glasses_model_name = ('D:\StudyMat\Projects\SAM\Safetix-\models\epoch100.pt')
+glasses_model_name = ('D:\StudyMat\Projects\SAM\Safetix-\models\glasses_best.pt')
 glasses_model = YOLO(glasses_model_name)
 glasses_model.to(device)
 
 
-def send_notification(detection_type, confidence):
+def send_alert(detection_type, confidence):
     server_url = "http://localhost:5000/api/notifications"  
     payload = {
         "detection_type": detection_type,
@@ -67,10 +67,10 @@ def process_result(result, frame, model):
             
             winsound.Beep(1000, 500)
             if label_name == 'without_helmet':
-                send_notification(label_name, float(score))  # Use the manually set label
+                send_alert(label_name, float(score))  # Use the manually set label
 
     elif model.model_name == glasses_model_name:
-        if (model.names[int(class_id)] == '0') or (score > 0.90 and model.names[int(class_id)] == '1'):
+        if (score > 0.50 and model.names[int(class_id)] == '0') or (score > 0.80 and model.names[int(class_id)] == '1'):
             if model.names[int(class_id)] == '0':
                 label_name = 'without glasses' 
             else:
@@ -81,7 +81,7 @@ def process_result(result, frame, model):
             cv2.putText(frame, label, (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
             winsound.Beep(1000, 500)  # Beep alarm for glasses detection
             if label_name == 'without glasses':
-                send_notification(label_name, float(score))  # Send notification to server
+                send_alert(label_name, float(score))  # Send notification to server
     
     return None
 
