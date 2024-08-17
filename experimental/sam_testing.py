@@ -1,9 +1,9 @@
 import cv2
 import torch
 import numpy as np
-from ultralytics import SAM
+from ultralytics import FastSAM
 
-FRAME_INTERVAL = 30
+FRAME_INTERVAL = 2
 
 def preprocess_frame(frame):
     # Resize frame to 640x480
@@ -21,8 +21,8 @@ def preprocess_frame(frame):
 
 # Load the SAM model and move it to the GPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = SAM(model='./models/sam2_t.pt')
-model.model.image_encoder.img_size = (480, 640)  # Set the new input size
+model = FastSAM(model='./models/FastSAM-s.pt')
+# model.model.image_encoder.img_size = (480, 640)  # Set the new input size
 model = model.to(device)
 
 frame_count = 0
@@ -58,7 +58,7 @@ while True:
         
         # Perform segmentation with bounding box prompt (example bounding box)
         with torch.no_grad():
-            results = model(resized_frame, bboxes=[100, 70, 200, 200])
+            results = model(resized_frame, bboxes=[[100, 70, 200, 200],[280, 25, 360, 100]])
 
         # Process results
         for result in results:
@@ -85,7 +85,7 @@ while True:
 
     # Draw the bounding box on the frame
     cv2.rectangle(frame, (100, 70), (200, 200), (0, 255, 0), 2)
-
+    cv2.rectangle(frame, (280, 25), (360, 100), (0, 255, 0), 2)
     # Display the resulting frame
     cv2.imshow('Frame',frame)
 

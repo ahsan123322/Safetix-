@@ -1,8 +1,7 @@
-import cv2,time
-import torch,queue
+import cv2,time,torch,queue
 import numpy as np
 from ultralytics import YOLO
-from ultralytics import SAM
+from ultralytics import FastSAM
 import winsound
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
@@ -12,7 +11,7 @@ from ttkthemes import ThemedTk
 
 #Set Up FPS Lock And Segmentation after Interval
 FPS=30
-FRAME_INTERVAL=10
+FRAME_INTERVAL=2
 
 # Set up device
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -35,11 +34,11 @@ glasses_model = YOLO(glasses_model_path)
 glasses_model.to(device)
 
 #Load SAM Model and Move to GPU.
-sam_model = SAM("./models/sam2_t.pt")
-sam_model.model.image_encoder.img_size = (480, 640)  # Set the new input size
+sam_model = FastSAM("./models/FastSAM-s.pt")
+#sam_model.model.image_encoder.img_size = (480, 640)  # Set the new input size
 sam_model = sam_model.to(device)
 
-#sam_model.compile()
+sam_model.compile()
 
 def empty_queue(q):
     while not q.empty():
@@ -58,7 +57,6 @@ def process_result(result,frame,model):
             cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
             label = f'Helmet: {score:.2f}'
             cv2.putText(frame, label, (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-            winsound.Beep(1000, 500)  # Beep alarm for helmet detection
     #glasses model detections
     elif model.model_name == glasses_model_path:
 
@@ -66,7 +64,6 @@ def process_result(result,frame,model):
             cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
             label = f'{model.names[int(class_id)]}: {score:.2f}'
             cv2.putText(frame, label, (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-            winsound.Beep(1000, 500)  # Beep alarm for glasses detection
             
     return None
 
@@ -83,7 +80,7 @@ def segment_result(model_bboxes,frame,frame_count,curr_mask,mask_queue,sam_m):
         if len(model_bboxes) != 0:
             with torch.no_grad():
                 seg_results = sam_m(frame, bboxes=model_bboxes)
-
+                print(f'Segmentation Results Length {len(seg_results)}:')
             # Process Segmentation results
             for seg_result in seg_results:
                 if seg_result.masks is not None:
@@ -119,7 +116,7 @@ def detect_helmets(frame,frame_count,curr_mask,mask_queue,sam_m):
     seg_thread.start()
 
     #Optionally Join the threads.
-    #seg_thread.join()
+    seg_thread.join()
 
     return frame
 
