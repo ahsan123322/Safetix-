@@ -64,10 +64,10 @@ def process_result(result, frame, model):
             
             label = f'{label_name}: {score:.2f}'
             cv2.putText(frame, label, (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-            
-            winsound.Beep(1000, 500)
+                  
             if label_name == 'without_helmet':
-                send_alert(label_name, float(score))  # Use the manually set label
+                winsound.Beep(1000, 500)
+                send_alert(label_name, float(score)) 
 
     elif model.model_name == glasses_model_name:
         if (score > 0.50 and model.names[int(class_id)] == '0') or (score > 0.80 and model.names[int(class_id)] == '1'):
@@ -79,9 +79,10 @@ def process_result(result, frame, model):
             cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
             label = f'{label_name}: {score:.2f}'
             cv2.putText(frame, label, (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-            winsound.Beep(1000, 500)  # Beep alarm for glasses detection
+             
             if label_name == 'without glasses':
-                send_alert(label_name, float(score))  # Send notification to server
+                winsound.Beep(1000, 500)
+                send_alert(label_name, float(score))  
     
     return None
 
